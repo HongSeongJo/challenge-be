@@ -1,6 +1,7 @@
 package com.challenge.backend.auth.controller;
 
 import com.challenge.backend.auth.dto.LoginRequest;
+import com.challenge.backend.auth.dto.OAuth2ExchangeRequest;
 import com.challenge.backend.auth.dto.RefreshRequest;
 import com.challenge.backend.auth.dto.RegisterRequest;
 import com.challenge.backend.auth.dto.TokenResponse;
@@ -34,5 +35,10 @@ public class AuthController {
     @PostMapping("/refresh")
     public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
         return authService.refresh(request);
+    }
+
+    @PostMapping("/oauth2/exchange")
+    public TokenResponse exchangeOAuth2Code(@Valid @RequestBody OAuth2ExchangeRequest request) {
+        return authService.exchangeOAuth2Code(request);
     }
 }
