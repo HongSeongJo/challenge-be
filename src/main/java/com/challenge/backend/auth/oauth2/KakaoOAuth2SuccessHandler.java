@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
  * 카카오 로그인 성공 시 (account_email 동의 필수) 이메일 기준으로 계정을 찾거나 만들고,
  * 1회용 임시 코드를 발급해 프론트엔드 콜백 URL로 리다이렉트한다.
  * 실제 JWT는 URL에 노출하지 않고, FE가 이 코드를 /api/auth/oauth2/exchange 로 교환해서 받는다.
+ * 닉네임은 카카오 프로필 값을 그대로 쓰지 않고 사용자가 직접 정하게 한다(UserService#findOrCreateForKakao).
  */
 @Component
 @RequiredArgsConstructor
@@ -42,13 +43,7 @@ public class KakaoOAuth2SuccessHandler implements AuthenticationSuccessHandler {
         }
         String email = (String) kakaoAccount.get("email");
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
-        String nickname = (profile != null && profile.get("nickname") != null)
-                ? (String) profile.get("nickname")
-                : "kakao_" + providerUserId;
-
-        User user = userService.findOrCreateForKakao(providerUserId, email, nickname);
+        User user = userService.findOrCreateForKakao(providerUserId, email);
         String code = oAuth2LoginCodeService.issueCode(user.getId());
 
         String redirectUrl = UriComponentsBuilder.fromUriString(oAuth2Properties.successRedirectUri())

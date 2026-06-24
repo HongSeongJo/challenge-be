@@ -8,6 +8,7 @@ import com.challenge.backend.auth.dto.TokenResponse;
 import com.challenge.backend.auth.exception.EmailAlreadyExistsException;
 import com.challenge.backend.auth.exception.InvalidCredentialsException;
 import com.challenge.backend.auth.exception.InvalidTokenException;
+import com.challenge.backend.auth.exception.NicknameAlreadyExistsException;
 import com.challenge.backend.auth.jwt.JwtTokenProvider;
 import com.challenge.backend.auth.oauth2.OAuth2LoginCodeService;
 import com.challenge.backend.user.entity.AuthProvider;
@@ -37,8 +38,11 @@ public class AuthService {
         if (userRepository.existsByEmail(request.email())) {
             throw new EmailAlreadyExistsException(request.email());
         }
+        if (userRepository.existsByNickname(request.nickname())) {
+            throw new NicknameAlreadyExistsException(request.nickname());
+        }
 
-        User user = new User(request.email(), passwordEncoder.encode(request.password()), request.nickname(), Role.USER);
+        User user = new User(request.email(), passwordEncoder.encode(request.password()), request.nickname(), Role.USER, true);
         userRepository.save(user);
         authProviderRepository.save(new AuthProvider(user, ProviderType.LOCAL, request.email()));
 
@@ -72,6 +76,10 @@ public class AuthService {
         }
     }
 
+    public boolean isNicknameAvailable(String nickname) {
+        return !userRepository.existsByNickname(nickname);
+    }
+
     /**
      * 카카오 로그인 성공 후 발급된 1회용 코드를 실제 JWT로 교환한다.
      * 코드는 Redis에서 즉시 삭제되어 재사용할 수 없다.
@@ -91,6 +99,6 @@ public class AuthService {
     private TokenResponse issueTokens(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail(), user.getRole());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId(), user.getEmail(), user.getRole());
-        return new TokenResponse(accessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirySeconds());
+        return new TokenResponse(accessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirySeconds(), user.isNicknameConfirmed());
     }
 }
