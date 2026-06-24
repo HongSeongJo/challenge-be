@@ -36,8 +36,13 @@ public class User {
     @Column(name = "password")
     private String password;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String nickname;
+
+    // 일반 가입은 가입 시점에 닉네임을 직접 입력하므로 항상 true.
+    // 카카오 최초 가입은 임시 닉네임으로 생성되므로 false -> FE에서 닉네임 설정 화면으로 보내야 한다.
+    @Column(name = "nickname_confirmed", nullable = false)
+    private boolean nicknameConfirmed;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -46,16 +51,22 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    public User(String email, String password, String nickname, Role role) {
+    public User(String email, String password, String nickname, Role role, boolean nicknameConfirmed) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
         this.role = role;
+        this.nicknameConfirmed = nicknameConfirmed;
         this.createdAt = Instant.now();
     }
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    public void changeNickname(String nickname) {
+        this.nickname = nickname;
+        this.nicknameConfirmed = true;
     }
 
     public boolean hasPassword() {

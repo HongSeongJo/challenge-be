@@ -28,8 +28,34 @@ spring:
       group-id: challenge-backend
       auto-offset-reset: earliest
 
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID:dev-kakao-client-id}
+            client-secret: ${KAKAO_CLIENT_SECRET:dev-kakao-client-secret}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            client-authentication-method: client_secret_post
+            scope:
+              - profile_nickname
+              - account_email
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
 app:
   jwt:
     secret: ${JWT_SECRET:dev-only-secret-key-change-me-in-production-32bytes-min}
     access-token-expiry-seconds: ${JWT_ACCESS_EXPIRY_SECONDS:1800}
     refresh-token-expiry-seconds: ${JWT_REFRESH_EXPIRY_SECONDS:1209600}
+
+  oauth2:
+    success-redirect-uri: ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:5173/oauth/callback}
+
+  cors:
+    allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
