@@ -6,7 +6,9 @@ import com.challenge.backend.user.dto.UserResponse;
 import com.challenge.backend.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,5 +32,11 @@ public class UserController {
             @AuthenticationPrincipal AuthenticatedUser principal,
             @Valid @RequestBody NicknameUpdateRequest request) {
         return UserResponse.from(userService.setNickname(principal.userId(), request.nickname()));
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> withdraw(@AuthenticationPrincipal AuthenticatedUser principal) {
+        userService.withdraw(principal.userId());
+        return ResponseEntity.noContent().build();
     }
 }

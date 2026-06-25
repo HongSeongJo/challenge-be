@@ -8,6 +8,7 @@ import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.stereotype.Component;
 
@@ -47,6 +48,7 @@ public class JwtTokenProvider {
     private String buildToken(Long userId, String email, Role role, String type, long expirySeconds) {
         Instant now = Instant.now();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(String.valueOf(userId))
                 .claim(CLAIM_EMAIL, email)
                 .claim(CLAIM_ROLE, role.name())
@@ -84,6 +86,14 @@ public class JwtTokenProvider {
 
     public Role getRole(Claims claims) {
         return Role.valueOf(claims.get(CLAIM_ROLE, String.class));
+    }
+
+    public String getTokenId(Claims claims) {
+        return claims.getId();
+    }
+
+    public Instant getExpiration(Claims claims) {
+        return claims.getExpiration().toInstant();
     }
 
     public boolean isValid(String token) {

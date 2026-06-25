@@ -10,6 +10,7 @@ import com.challenge.backend.auth.exception.InvalidCredentialsException;
 import com.challenge.backend.auth.exception.InvalidTokenException;
 import com.challenge.backend.auth.exception.NicknameAlreadyExistsException;
 import com.challenge.backend.auth.jwt.JwtTokenProvider;
+import com.challenge.backend.auth.jwt.RefreshTokenBlacklistService;
 import com.challenge.backend.auth.oauth2.OAuth2LoginCodeService;
 import com.challenge.backend.user.entity.AuthProvider;
 import com.challenge.backend.user.entity.ProviderType;
@@ -17,6 +18,7 @@ import com.challenge.backend.user.entity.Role;
 import com.challenge.backend.user.entity.User;
 import com.challenge.backend.user.repository.AuthProviderRepository;
 import com.challenge.backend.user.repository.UserRepository;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +34,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final OAuth2LoginCodeService oAuth2LoginCodeService;
+    private final RefreshTokenBlacklistService refreshTokenBlacklistService;
 
     @Transactional
     public TokenResponse register(RegisterRequest request) {
@@ -61,16 +64,30 @@ public class AuthService {
     }
 
     public TokenResponse refresh(RefreshRequest request) {
+        Claims claims = parseRefreshTokenOrThrow(request.refreshToken());
+
+        User user = userRepository.findById(jwtTokenProvider.getUserId(claims))
+                .orElseThrow(() -> new InvalidTokenException("존재하지 않는 사용자입니다."));
+
+        return issueTokens(user);
+    }
+
+    /** refresh token을 jti 기준으로 블랙리스트에 올려 더 이상 갱신에 쓸 수 없게 만든다. */
+    public void logout(RefreshRequest request) {
+        Claims claims = parseRefreshTokenOrThrow(request.refreshToken());
+        refreshTokenBlacklistService.blacklist(jwtTokenProvider.getTokenId(claims), jwtTokenProvider.getExpiration(claims));
+    }
+
+    private Claims parseRefreshTokenOrThrow(String refreshToken) {
         try {
-            var claims = jwtTokenProvider.parseClaims(request.refreshToken());
+            Claims claims = jwtTokenProvider.parseClaims(refreshToken);
             if (!jwtTokenProvider.isRefreshToken(claims)) {
                 throw new InvalidTokenException("refresh 토큰이 아닙니다.");
             }
-
-            User user = userRepository.findById(jwtTokenProvider.getUserId(claims))
-                    .orElseThrow(() -> new InvalidTokenException("존재하지 않는 사용자입니다."));
-
-            return issueTokens(user);
+            if (refreshTokenBlacklistService.isBlacklisted(jwtTokenProvider.getTokenId(claims))) {
+                throw new InvalidTokenException("로그아웃된 토큰입니다.");
+            }
+            return claims;
         } catch (JwtException | IllegalArgumentException e) {
             throw new InvalidTokenException("유효하지 않은 토큰입니다.");
         }
