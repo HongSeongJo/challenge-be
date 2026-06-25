@@ -1,6 +1,7 @@
 package com.challenge.backend.user.service;
 
 import com.challenge.backend.auth.exception.NicknameAlreadyExistsException;
+import com.challenge.backend.auth.oauth2.KakaoUnlinkClient;
 import com.challenge.backend.user.entity.AuthProvider;
 import com.challenge.backend.user.entity.ProviderType;
 import com.challenge.backend.user.entity.Role;
@@ -19,6 +20,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final AuthProviderRepository authProviderRepository;
+    private final KakaoUnlinkClient kakaoUnlinkClient;
 
     public User getById(Long id) {
         return userRepository.findById(id)
@@ -41,6 +43,24 @@ public class UserService {
         User user = getById(userId);
         user.changeNickname(nickname);
         return user;
+    }
+
+    /**
+     * 회원탈퇴: 카카오로 가입한 연동이 있으면 카카오 쪽 연결도 끊고(KakaoUnlinkClient),
+     * 로컬 데이터(AuthProvider, User)를 삭제한다.
+     * 진행 중인 챌린지가 있을 때 탈퇴를 막는 정책은 2단계(챌린지 도메인) 이후에 여기에 조건을 추가하면 된다.
+     */
+    @Transactional
+    public void withdraw(Long userId) {
+        User user = getById(userId);
+        List<AuthProvider> providers = authProviderRepository.findAllByUser_Id(userId);
+
+        providers.stream()
+                .filter(provider -> provider.getProvider() == ProviderType.KAKAO)
+                .forEach(provider -> kakaoUnlinkClient.unlink(provider.getProviderUserId()));
+
+        authProviderRepository.deleteAll(providers);
+        userRepository.delete(user);
     }
 
     /**
