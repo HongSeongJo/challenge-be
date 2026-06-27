@@ -1,5 +1,8 @@
 package com.challenge.backend.auth.controller;
 
+import com.challenge.backend.auth.dto.EmailAvailabilityResponse;
+import com.challenge.backend.auth.dto.EmailCodeRequest;
+import com.challenge.backend.auth.dto.EmailVerifyRequest;
 import com.challenge.backend.auth.dto.LoginRequest;
 import com.challenge.backend.auth.dto.NicknameAvailabilityResponse;
 import com.challenge.backend.auth.dto.OAuth2ExchangeRequest;
@@ -57,5 +60,22 @@ public class AuthController {
     @GetMapping("/check-nickname")
     public NicknameAvailabilityResponse checkNickname(@RequestParam @NotBlank String nickname) {
         return new NicknameAvailabilityResponse(authService.isNicknameAvailable(nickname));
+    }
+
+    @GetMapping("/check-email")
+    public EmailAvailabilityResponse checkEmail(@RequestParam @NotBlank String email) {
+        return new EmailAvailabilityResponse(authService.isEmailAvailable(email));
+    }
+
+    @PostMapping("/email/send-code")
+    public ResponseEntity<Void> sendEmailCode(@Valid @RequestBody EmailCodeRequest request) {
+        authService.sendEmailCode(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/email/verify-code")
+    public ResponseEntity<Void> verifyEmailCode(@Valid @RequestBody EmailVerifyRequest request) {
+        authService.verifyEmailCode(request);
+        return ResponseEntity.noContent().build();
     }
 }
