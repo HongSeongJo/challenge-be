@@ -1,12 +1,18 @@
 package com.challenge.backend.auth.service;
 
+import com.challenge.backend.auth.dto.EmailCodeRequest;
+import com.challenge.backend.auth.dto.EmailVerifyRequest;
 import com.challenge.backend.auth.dto.LoginRequest;
 import com.challenge.backend.auth.dto.OAuth2ExchangeRequest;
 import com.challenge.backend.auth.dto.RefreshRequest;
 import com.challenge.backend.auth.dto.RegisterRequest;
 import com.challenge.backend.auth.dto.TokenResponse;
+import com.challenge.backend.auth.email.EmailSender;
+import com.challenge.backend.auth.email.EmailVerificationService;
 import com.challenge.backend.auth.exception.EmailAlreadyExistsException;
+import com.challenge.backend.auth.exception.EmailNotVerifiedException;
 import com.challenge.backend.auth.exception.InvalidCredentialsException;
+import com.challenge.backend.auth.exception.InvalidEmailCodeException;
 import com.challenge.backend.auth.exception.InvalidTokenException;
 import com.challenge.backend.auth.exception.NicknameAlreadyExistsException;
 import com.challenge.backend.auth.jwt.JwtTokenProvider;
@@ -35,6 +41,27 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final OAuth2LoginCodeService oAuth2LoginCodeService;
     private final RefreshTokenBlacklistService refreshTokenBlacklistService;
+    private final EmailVerificationService emailVerificationService;
+    private final EmailSender emailSender;
+
+    /** 이미 가입된 이메일이면 인증 코드를 보낼 필요가 없으므로 먼저 막는다. */
+    public void sendEmailCode(EmailCodeRequest request) {
+        if (userRepository.existsByEmail(request.email())) {
+            throw new EmailAlreadyExistsException(request.email());
+        }
+        String code = emailVerificationService.issueCode(request.email());
+        emailSender.sendVerificationCode(request.email(), code);
+    }
+
+    public void verifyEmailCode(EmailVerifyRequest request) {
+        if (!emailVerificationService.verifyCode(request.email(), request.code())) {
+            throw new InvalidEmailCodeException();
+        }
+    }
+
+    public boolean isEmailAvailable(String email) {
+        return !userRepository.existsByEmail(email);
+    }
 
     @Transactional
     public TokenResponse register(RegisterRequest request) {
@@ -44,10 +71,14 @@ public class AuthService {
         if (userRepository.existsByNickname(request.nickname())) {
             throw new NicknameAlreadyExistsException(request.nickname());
         }
+        if (!emailVerificationService.isVerified(request.email())) {
+            throw new EmailNotVerifiedException();
+        }
 
         User user = new User(request.email(), passwordEncoder.encode(request.password()), request.nickname(), Role.USER, true);
         userRepository.save(user);
         authProviderRepository.save(new AuthProvider(user, ProviderType.LOCAL, request.email()));
+        emailVerificationService.consumeVerified(request.email());
 
         return issueTokens(user);
     }
