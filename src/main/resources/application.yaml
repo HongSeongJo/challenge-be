@@ -74,3 +74,11 @@ app:
 
   kakao:
     admin-key: ${KAKAO_ADMIN_KEY:}
+
+springdoc:
+  swagger-ui:
+    doc-expansion: none
+    default-models-expand-depth: -1
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

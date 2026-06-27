@@ -53,7 +53,10 @@ public class SecurityConfig {
                 // JWT로 보호되는 API는 세션을 전혀 사용하지 않으므로 IF_REQUIRED로도 사실상 stateless하게 동작한다.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/oauth2/**", "/login/oauth2/**", "/error").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**", "/oauth2/**", "/login/oauth2/**", "/error",
+                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**"
+                        ).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint((request, response, ex) -> response.sendError(HttpStatus.UNAUTHORIZED.value())))
