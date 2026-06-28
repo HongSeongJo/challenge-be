@@ -75,6 +75,12 @@ app:
   kakao:
     admin-key: ${KAKAO_ADMIN_KEY:}
 
+  # TODO: 사업자 등록 후 PORTONE 방식 전환 시 아래 주석 해제 후 실제 키 입력
+  # portone:
+  #   api-key: ${PORTONE_API_KEY:}
+  #   api-secret: ${PORTONE_API_SECRET:}
+  #   rest-api-url: https://api.iamport.kr
+
 springdoc:
   swagger-ui:
     doc-expansion: none

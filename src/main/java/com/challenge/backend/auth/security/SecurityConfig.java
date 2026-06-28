@@ -55,7 +55,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**", "/oauth2/**", "/login/oauth2/**", "/error",
-                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**"
+                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+                                "/api/challenges/invite/*"  // 초대 코드 미리보기는 비로그인 허용
                         ).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling
